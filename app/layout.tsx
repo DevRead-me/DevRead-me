@@ -34,11 +34,9 @@ export default function RootLayout({
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#0a0e27" />
+        <meta name="theme-color" content="#050505" />
       </head>
-      <body className="bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 text-white">
-        {children}
-      </body>
+      <body className="app-body">{children}</body>
     </html>
   );
 }
