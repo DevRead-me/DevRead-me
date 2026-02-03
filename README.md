@@ -2,7 +2,9 @@
 
 Turn your code into professional Docsify documentation with AI analysis.
 
-**Live Demo:** https://devreadme.jumpstone4477.de/
+## Disclaimer
+
+This project, including the core logic and parts of this documentation, is **fully vibe coded**. It serves as a living experiment on how far natural language and AI (GitHub Copilot, Gemini) can take a production-ready web application.
 
 ## Features
 
