@@ -220,6 +220,14 @@ Return ONLY valid JSON in this format:
 }
 
 Guidelines for Markdown Generation:
+MANDATORY QUALITY BAR:
+- Every file must be substantive, not a stub or outline
+- README.md must be at least 500 words with multiple sections and concrete guidance
+- Other files must be at least 250 words each
+- Each section must include a short explanatory paragraph before any lists
+- Avoid bullet-only sections; every list item must include 1-2 sentences of explanation
+- Include at least one concrete example (code or command) in each file
+- Do not repeat the same content across files; each file must add unique value
 ${
   audience === "developer"
     ? `- Use clear hierarchies with H1, H2, H3 headings
@@ -245,7 +253,9 @@ ${
 - Make content visually scannable`
 }
 - Use proper markdown formatting (code blocks, lists, tables)
-- Make content easily scannable`;
+- Use proper markdown formatting (code blocks, lists, tables)
+- Make content easily scannable
+- Prefer practical guidance over generic statements`;
 
   const message = await groq.chat.completions.create({
     model: MODEL,
@@ -325,6 +335,13 @@ Return ONLY valid JSON in this exact format:
     "keyFeatures": ["Feature 1", "Feature 2"]
   }
 }
+
+MANDATORY QUALITY BAR:
+- README.md must be at least 700 words
+- Each section must include an explanatory paragraph (not just bullets)
+- Any list must contain items with 1-2 sentences of explanation
+- Include at least two concrete examples (code/commands)
+- Provide practical, project-specific guidance; avoid generic filler
 
 Make the README comprehensive, professional, and include all necessary information in one file, tailored for the specified audience.`;
 
