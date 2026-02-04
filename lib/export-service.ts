@@ -6,7 +6,7 @@ import { ExportBundle, DocumentationFile } from "@/types";
  * Structure:
  * - index.html (root)
  * - themes/docs.css
- * - _sidebar.md
+ * - _sidebar.md (only when sidebar is enabled)
  * - *.md (all generated documentation files)
  */
 export async function createZipBundle(bundle: ExportBundle): Promise<Blob> {
@@ -17,11 +17,18 @@ export async function createZipBundle(bundle: ExportBundle): Promise<Blob> {
     zip.file("index.html", bundle.indexHtml);
 
     // Create themes folder and add docs.css
-    zip.folder("themes")?.file("docs.css", bundle.themeCss);
+    const themesFolder = zip.folder("themes");
+    themesFolder?.file("docs.css", bundle.themeCss);
 
-    // Add _sidebar.md (template for navigation)
-    const sidebarContent = generateSidebar(bundle.markdownFiles);
-    zip.file("_sidebar.md", sidebarContent);
+    if (bundle.noSidebarCss) {
+      themesFolder?.file("no-sidebar.css", bundle.noSidebarCss);
+    }
+
+    // Add _sidebar.md (template for navigation) only when sidebar is enabled
+    if (bundle.includeSidebar) {
+      const sidebarContent = generateSidebar(bundle.markdownFiles);
+      zip.file("_sidebar.md", sidebarContent);
+    }
 
     // Add all markdown documentation files
     bundle.markdownFiles.forEach((file) => {
@@ -121,6 +128,12 @@ export function validateBundle(bundle: ExportBundle): {
   const fileNames = bundle.markdownFiles.map((f) => f.name);
   if (!fileNames.includes("README.md")) {
     errors.push("Missing README.md");
+  }
+
+  if (!bundle.includeSidebar) {
+    if (bundle.markdownFiles.length !== 1) {
+      errors.push("Sidebar disabled: only README.md is allowed");
+    }
   }
 
   return {

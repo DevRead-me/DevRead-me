@@ -103,13 +103,16 @@ export interface TemplateConfig {
 export interface TemplateProcessResult {
   htmlContent: string;
   cssContent: string;
+  noSidebarCss?: string;
 }
 
 // Export Bundle Types
 export interface ExportBundle {
   indexHtml: string;
   themeCss: string;
+  noSidebarCss?: string;
   markdownFiles: DocumentationFile[];
+  includeSidebar: boolean;
 }
 
 // Frontend Component Types

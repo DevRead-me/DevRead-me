@@ -8,10 +8,12 @@ import path from "path";
 async function readTemplateFiles(includeSidebar: boolean): Promise<{
   htmlContent: string;
   cssContent: string;
+  noSidebarCss?: string;
 }> {
   try {
     const baseDir = process.cwd();
-    const templateDir = includeSidebar ? "with-sidebar" : "without-sidebar";
+    const templateDir =
+      includeSidebar === true ? "with-sidebar" : "without-sidebar";
     const htmlPath = path.join(
       baseDir,
       "example-docs",
@@ -34,14 +36,14 @@ async function readTemplateFiles(includeSidebar: boolean): Promise<{
     );
 
     const htmlContent = fs.readFileSync(htmlPath, "utf-8");
-    let cssContent = fs.readFileSync(cssPath, "utf-8");
+    const cssContent = fs.readFileSync(cssPath, "utf-8");
+    let noSidebarCss: string | undefined;
 
     if (!includeSidebar && fs.existsSync(noSidebarCssPath)) {
-      const noSidebarCss = fs.readFileSync(noSidebarCssPath, "utf-8");
-      cssContent = `${cssContent}\n\n${noSidebarCss}`;
+      noSidebarCss = fs.readFileSync(noSidebarCssPath, "utf-8");
     }
 
-    return { htmlContent, cssContent };
+    return { htmlContent, cssContent, noSidebarCss };
   } catch (error) {
     console.error("Error reading template files:", error);
     throw new Error("Failed to read template files");
@@ -77,17 +79,10 @@ function processHtmlTemplate(
   );
 
   // Handle sidebar configuration
-  if (!config.includeSidebar) {
-    processed = processed.replace(
-      /loadSidebar:\s*true,/,
-      "loadSidebar: false,",
-    );
-
-    processed = processed.replace(
-      /\s*<link[^>]*href="\/themes\/no-sidebar\.css"[^>]*>\s*/i,
-      "\n",
-    );
-  }
+  processed = processed.replace(
+    /loadSidebar:\s*(true|false),/,
+    `loadSidebar: ${config.includeSidebar ? "true" : "false"},`,
+  );
 
   return processed;
 }
@@ -165,13 +160,16 @@ export async function processTemplates(
 ): Promise<TemplateProcessResult> {
   try {
     // Read template files based on sidebar configuration
-    const { htmlContent, cssContent } = await readTemplateFiles(
+    const { htmlContent, cssContent, noSidebarCss } = await readTemplateFiles(
       config.includeSidebar,
     );
 
     // Process templates
     const processedHtml = processHtmlTemplate(htmlContent, config);
     const processedCss = processCssTemplate(cssContent, config.themeColor);
+    const processedNoSidebarCss = noSidebarCss
+      ? processCssTemplate(noSidebarCss, config.themeColor)
+      : undefined;
 
     console.log("[TemplateProcessor] Templates processed successfully");
     console.log(`  - Project: ${config.projectName}`);
@@ -186,6 +184,7 @@ export async function processTemplates(
     return {
       htmlContent: processedHtml,
       cssContent: processedCss,
+      noSidebarCss: processedNoSidebarCss,
     };
   } catch (error) {
     console.error("[TemplateProcessor] Error:", error);

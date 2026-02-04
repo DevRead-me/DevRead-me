@@ -47,15 +47,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.log("[API] Step 1: Generating documentation with Groq...");
     console.log(`[API] Audience: ${body.audience}`);
     console.log(`[API] Tone Style: ${body.toneStyle}`);
-    const generationResult = body.generateFullDocs
-      ? await generateCompleteDocumentation(
-          body.projectName,
-          body.codeInput,
-          undefined,
-          body.audience || "developer",
-          body.toneStyle || "professional",
-        )
-      : await (
+    const readmeOnly = !body.includeSidebar || !body.generateFullDocs;
+    const generationResult = readmeOnly
+      ? await (
           await import("@/lib/groq-service")
         ).generateSimpleReadme(
           body.projectName,
@@ -63,17 +57,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           body.codeInput,
           body.audience || "developer",
           body.toneStyle || "professional",
+        )
+      : await generateCompleteDocumentation(
+          body.projectName,
+          body.codeInput,
+          undefined,
+          body.audience || "developer",
+          body.toneStyle || "professional",
         );
 
     // Step 2: Convert Groq results to DocumentationFile array
     console.log("[API] Step 2: Converting generated files...");
-    const markdownFiles: DocumentationFile[] = Object.entries(
+    const allMarkdownFiles: DocumentationFile[] = Object.entries(
       generationResult.files,
     ).map(([name, content]) => ({
       name,
       content,
       path: `/${name}`,
     }));
+
+    const markdownFiles: DocumentationFile[] = readmeOnly
+      ? createReadmeOnlyFiles(allMarkdownFiles)
+      : allMarkdownFiles;
 
     // Step 3: Process templates
     console.log("[API] Step 3: Processing templates...");
@@ -91,7 +96,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const bundle: ExportBundle = {
       indexHtml: processedTemplates.htmlContent,
       themeCss: processedTemplates.cssContent,
+      noSidebarCss: processedTemplates.noSidebarCss,
       markdownFiles,
+      includeSidebar: body.includeSidebar,
     };
 
     // Validate bundle
@@ -182,6 +189,42 @@ function validateInput(body: any): {
     valid: errors.length === 0,
     errors,
   };
+}
+
+function createReadmeOnlyFiles(
+  files: DocumentationFile[],
+): DocumentationFile[] {
+  const readmeFile =
+    files.find((file) => file.name === "README.md") ||
+    files.find((file) => file.name.toLowerCase() === "readme.md");
+
+  if (readmeFile) {
+    return [
+      {
+        ...readmeFile,
+        name: "README.md",
+        path: "/README.md",
+      },
+    ];
+  }
+
+  if (files.length > 0) {
+    return [
+      {
+        name: "README.md",
+        content: files[0].content,
+        path: "/README.md",
+      },
+    ];
+  }
+
+  return [
+    {
+      name: "README.md",
+      content: "# README\n\nNo documentation content was generated.",
+      path: "/README.md",
+    },
+  ];
 }
 
 // Handle other HTTP methods
