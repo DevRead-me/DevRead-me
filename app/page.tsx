@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Github, Sparkles, Zap, Menu, X } from "lucide-react";
 import {
@@ -21,28 +21,67 @@ const InputField: React.FC<{
   placeholder?: string;
   type?: string;
   rows?: number;
-}> = ({ label, value, onChange, placeholder, type = "text", rows }) => (
-  <div className="space-y-2">
-    <label className="block label">{label}</label>
-    {rows ? (
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        rows={rows}
-        className="input-field resize-none"
-      />
-    ) : (
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="input-field"
-      />
-    )}
-  </div>
-);
+  autoResize?: boolean;
+  maxRows?: number;
+}> = ({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  rows,
+  autoResize = false,
+  maxRows = 12,
+}) => {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const resizeTextarea = (element: HTMLTextAreaElement) => {
+    const computed = window.getComputedStyle(element);
+    const lineHeight = parseFloat(computed.lineHeight || "0") || 20;
+    const maxHeight = Math.max(lineHeight * maxRows, lineHeight * (rows || 1));
+
+    element.style.height = "auto";
+    const nextHeight = Math.min(element.scrollHeight, maxHeight);
+    element.style.height = `${nextHeight}px`;
+    element.style.overflowY =
+      element.scrollHeight > maxHeight ? "auto" : "hidden";
+  };
+
+  useEffect(() => {
+    if (rows && autoResize && textareaRef.current) {
+      resizeTextarea(textareaRef.current);
+    }
+  }, [value, rows, autoResize, maxRows]);
+
+  return (
+    <div className="space-y-2">
+      <label className="block label">{label}</label>
+      {rows ? (
+        <textarea
+          ref={textareaRef}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onInput={(e) => {
+            if (autoResize) {
+              resizeTextarea(e.currentTarget);
+            }
+          }}
+          placeholder={placeholder}
+          rows={rows}
+          className="input-field resize-none"
+        />
+      ) : (
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="input-field"
+        />
+      )}
+    </div>
+  );
+};
 
 // Toggle Component
 const Toggle: React.FC<{
@@ -484,8 +523,8 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <div className="relative z-10 w-full max-w-full px-4 sm:px-6 lg:px-8 py-12 mt-24">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="relative z-10 w-full max-w-full px-4 sm:px-6 lg:px-8 py-8 mt-20">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Options Section (Left) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -581,15 +620,15 @@ export default function Home() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="lg:col-span-2 space-y-6"
+            className="lg:col-span-2 space-y-4 form-panel"
           >
             {/* Hero Section */}
-            <div className="space-y-4 mb-8">
-              <h2 className="text-4xl md:text-5xl font-bold leading-tight">
+            <div className="space-y-2 mb-4">
+              <h2 className="text-3xl md:text-4xl font-bold leading-tight">
                 Transform Your Code into{" "}
                 <span className="text-gradient">Beautiful Docs</span>
               </h2>
-              <p className="text-lg text-muted leading-relaxed max-w-2xl">
+              <p className="text-sm md:text-base text-muted leading-relaxed max-w-2xl">
                 Powered by AI. Create comprehensive Docsify documentation from
                 your GitHub repositories in seconds.
               </p>
@@ -597,7 +636,7 @@ export default function Home() {
 
             {/* Form Card */}
             <motion.div
-              className="card card-lg space-y-6 relative"
+              className="card p-6 space-y-4 relative"
               whileHover={{ borderColor: "rgba(161, 161, 170, 0.8)" }}
             >
               {/* Loading State */}
@@ -692,7 +731,9 @@ export default function Home() {
                 value={formData.codeInput}
                 onChange={(value) => handleInputChange("codeInput", value)}
                 placeholder="Paste your README.md, code snippets, or project overview..."
-                rows={6}
+                rows={4}
+                autoResize
+                maxRows={12}
               />
 
               {/* Error Message */}
