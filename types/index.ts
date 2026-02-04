@@ -120,6 +120,7 @@ export interface FormData {
   projectName: string;
   description: string;
   codeInput: string;
+  sourcesInput: string;
   accentColor: string;
   includeSidebar: boolean;
   useDesignV2: boolean;
@@ -135,11 +136,23 @@ export interface GenerationStatus {
   step: "idle" | "analyzing" | "generating" | "exporting" | "complete";
 }
 
+export interface SourceSummaryItem {
+  url: string;
+  normalizedUrl: string;
+  chars: number;
+}
+
+export interface SourceFetchSummary {
+  fetched: SourceSummaryItem[];
+  failed: Array<{ url: string; error: string }>;
+}
+
 // API Response Types
 export interface GenerateApiRequest {
   projectName: string;
   description: string;
   codeInput: string;
+  sourcesInput?: string;
   accentColor: string;
   includeSidebar: boolean;
   generateFullDocs: boolean; // true = full docs package, false = simple README only
@@ -151,6 +164,7 @@ export interface GenerateApiResponse {
   success: boolean;
   data?: {
     bundle: ExportBundle;
+    sourceSummary?: SourceFetchSummary;
   };
   error?: string;
 }

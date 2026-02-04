@@ -10,11 +10,12 @@ import {
   AudienceType,
   ToneStyle,
   TONE_STYLE_DESCRIPTIONS,
+  SourceFetchSummary,
 } from "@/types";
 
 // Reusable Input Component
 const InputField: React.FC<{
-  label: string;
+  label: React.ReactNode;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -198,6 +199,7 @@ export default function Home() {
     projectName: "",
     description: "",
     codeInput: "",
+    sourcesInput: "",
     accentColor: "#D4AF37",
     includeSidebar: true,
     useDesignV2: false,
@@ -212,6 +214,10 @@ export default function Home() {
     progress: 0,
     step: "idle",
   });
+
+  const [sourceSummary, setSourceSummary] = useState<SourceFetchSummary | null>(
+    null,
+  );
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -245,6 +251,7 @@ export default function Home() {
       progress: 0,
       step: "analyzing",
     });
+    setSourceSummary(null);
 
     try {
       // Call API
@@ -257,6 +264,7 @@ export default function Home() {
           projectName: formData.projectName,
           description: formData.description,
           codeInput: formData.codeInput,
+          sourcesInput: formData.sourcesInput,
           accentColor: formData.accentColor,
           includeSidebar: formData.includeSidebar,
           generateFullDocs: formData.generateFullDocs,
@@ -280,6 +288,10 @@ export default function Home() {
 
       if (!data.success) {
         throw new Error(data.error);
+      }
+
+      if (data.data?.sourceSummary) {
+        setSourceSummary(data.data.sourceSummary);
       }
 
       setGenerationStatus((prev) => ({
@@ -340,6 +352,7 @@ export default function Home() {
           projectName: "",
           description: "",
           codeInput: "",
+          sourcesInput: "",
           accentColor: "#D4AF37",
           includeSidebar: true,
           useDesignV2: false,
@@ -612,11 +625,67 @@ export default function Home() {
               />
 
               <InputField
-                label="Project Description (Optional)"
+                label={
+                  <span className="flex items-center gap-2">
+                    <span>Project Description</span>
+                    <span className="input-chip text-[9px] uppercase tracking-wide text-neutral-400/80 bg-neutral-800/40">
+                      Optional
+                    </span>
+                  </span>
+                }
                 value={formData.description}
                 onChange={(value) => handleInputChange("description", value)}
                 placeholder="Brief description of your project"
               />
+
+              <div className="space-y-2">
+                <InputField
+                  label={
+                    <span className="flex items-center gap-2">
+                      <span>Sources</span>
+                      <span className="input-chip text-[9px] uppercase tracking-wide text-neutral-400/80 bg-neutral-800/40">
+                        Optional
+                      </span>
+                    </span>
+                  }
+                  value={formData.sourcesInput}
+                  onChange={(value) => handleInputChange("sourcesInput", value)}
+                  placeholder="GitHub/Codeberg/Google Docs/Text URLs, comma-separated"
+                />
+                <p className="text-xs text-neutral-500">
+                  Example: https://github.com/user/repo/blob/main/README.md,
+                  https://codeberg.org/user/repo/src/branch/main/README.md,
+                  https://docs.google.com/document/d/FILE_ID/edit
+                </p>
+                {sourceSummary && (
+                  <div className="space-y-2">
+                    {sourceSummary.fetched.length > 0 && (
+                      <div className="p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 text-xs">
+                        <div className="font-medium mb-1">Fetched sources</div>
+                        <ul className="space-y-1">
+                          {sourceSummary.fetched.map((item) => (
+                            <li key={item.url} className="break-all">
+                              {item.url} · {item.chars} chars
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {sourceSummary.failed.length > 0 && (
+                      <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-200 text-xs">
+                        <div className="font-medium mb-1">Failed sources</div>
+                        <ul className="space-y-1">
+                          {sourceSummary.failed.map((item) => (
+                            <li key={item.url} className="break-all">
+                              {item.url} · {item.error}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <InputField
                 label="Code/README Input"

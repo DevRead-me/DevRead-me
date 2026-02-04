@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateCompleteDocumentation } from "@/lib/groq-service";
 import { processTemplates } from "@/lib/template-processor";
 import { validateBundle } from "@/lib/export-service";
+import { fetchSourcesForContext } from "@/lib/source-fetcher";
 import {
   GenerateApiRequest,
   GenerateApiResponse,
@@ -43,6 +44,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     console.log(`[API] Generation request: ${body.projectName}`);
 
+    // Step 0: Fetch external sources (optional)
+    const sourceResult = await fetchSourcesForContext(body.sourcesInput);
+    if (body.sourcesInput && sourceResult.contents.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            sourceResult.failed.length > 0
+              ? `Failed to fetch sources: ${sourceResult.failed
+                  .map((item) => `${item.url} (${item.error})`)
+                  .join("; ")}`
+              : "No valid sources provided",
+        } as GenerateApiResponse,
+        { status: 400 },
+      );
+    }
+
+    const combinedCodeInput =
+      body.codeInput + (sourceResult.combinedContext || "");
+
     // Step 1: Generate documentation using Groq
     console.log("[API] Step 1: Generating documentation with Groq...");
     console.log(`[API] Audience: ${body.audience}`);
@@ -54,13 +75,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         ).generateSimpleReadme(
           body.projectName,
           body.description || "",
-          body.codeInput,
+          combinedCodeInput,
           body.audience || "developer",
           body.toneStyle || "professional",
         )
       : await generateCompleteDocumentation(
           body.projectName,
-          body.codeInput,
+          combinedCodeInput,
           undefined,
           body.audience || "developer",
           body.toneStyle || "professional",
@@ -124,6 +145,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         success: true,
         data: {
           bundle,
+          sourceSummary: {
+            fetched: sourceResult.contents.map((item) => ({
+              url: item.url,
+              normalizedUrl: item.normalizedUrl,
+              chars: item.content.length,
+            })),
+            failed: sourceResult.failed,
+          },
         },
       } as GenerateApiResponse,
       { status: 200 },
