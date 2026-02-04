@@ -27,6 +27,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow: hidden;
 }
 
 body {
@@ -34,7 +35,7 @@ body {
   color: var(--text-main);
   font-family: var(--font-main);
   line-height: 1.6;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .app-body {
@@ -71,6 +72,9 @@ body {
 .app-shell {
   position: relative;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .container-xl {
@@ -641,4 +645,31 @@ input[type="number"] {
 ::selection {
   background-color: rgba(212, 175, 55, 0.3);
   color: #f5f5f5;
+}
+/* Scrollable left panel for options */
+.options-panel {
+  overflow-y: auto;
+  max-height: calc(100vh - 48px);
+  padding-right: 8px;
+  padding-top: var(--header-height);
+  margin-top: calc(-1 * var(--header-height));
+  scroll-padding-top: var(--header-height);
+}
+
+.options-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.options-panel::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.options-panel::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.5);
+  border-radius: 10px;
+}
+
+.options-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.8);
 }

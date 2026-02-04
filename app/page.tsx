@@ -3,7 +3,14 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Github, Sparkles, Zap, Menu, X } from "lucide-react";
-import { FormData, GenerationStatus } from "@/types";
+import {
+  FormData,
+  GenerationStatus,
+  AUDIENCE_LABELS,
+  AudienceType,
+  ToneStyle,
+  TONE_STYLE_DESCRIPTIONS,
+} from "@/types";
 
 // Reusable Input Component
 const InputField: React.FC<{
@@ -70,6 +77,122 @@ const LoadingSpinner: React.FC<{ message: string }> = ({ message }) => (
   </div>
 );
 
+// Audience Selector Component
+const AudienceSelector: React.FC<{
+  value: AudienceType;
+  onChange: (value: AudienceType) => void;
+}> = ({ value, onChange }) => {
+  const audiences: AudienceType[] = ["developer", "team", "enduser"];
+  const descriptions: Record<AudienceType, string> = {
+    developer: "Technical documentation for developers (like CONTRIBUTING.md)",
+    team: "Documentation for team members and colleagues",
+    enduser: "Simple, user-friendly documentation for non-technical users",
+  };
+
+  return (
+    <div className="space-y-3">
+      <label className="block label">Target Audience</label>
+      <div className="grid grid-cols-1 gap-2">
+        {audiences.map((audience) => (
+          <button
+            key={audience}
+            type="button"
+            onClick={() => onChange(audience)}
+            className={`card p-3 text-left transition-all border cursor-pointer ${
+              value === audience
+                ? "border-purple-500 bg-purple-500/10"
+                : "border-neutral-700 hover:border-purple-500/50"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                  value === audience
+                    ? "border-purple-500 bg-purple-500"
+                    : "border-neutral-600"
+                }`}
+              >
+                {value === audience && (
+                  <div className="w-2 h-2 bg-neutral-900 rounded-full" />
+                )}
+              </div>
+              <div>
+                <div className="font-medium text-sm">
+                  {AUDIENCE_LABELS[audience]}
+                </div>
+                <div className="text-xs text-neutral-500">
+                  {descriptions[audience]}
+                </div>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Tone Style Selector Component
+const ToneStyleSelector: React.FC<{
+  value: ToneStyle;
+  onChange: (value: ToneStyle) => void;
+}> = ({ value, onChange }) => {
+  const tones: ToneStyle[] = [
+    "casual",
+    "professional",
+    "friendly",
+    "technical",
+    "academic",
+  ];
+  const toneLabels: Record<ToneStyle, string> = {
+    casual: "Casual",
+    professional: "Professional",
+    friendly: "Friendly",
+    technical: "Technical",
+    academic: "Academic",
+  };
+
+  return (
+    <div className="space-y-3">
+      <label className="block label">Writing Style</label>
+      <div className="grid grid-cols-2 gap-2">
+        {tones.map((tone) => (
+          <button
+            key={tone}
+            type="button"
+            onClick={() => onChange(tone)}
+            className={`card p-3 text-left transition-all border cursor-pointer text-sm ${
+              value === tone
+                ? "border-purple-500 bg-purple-500/10"
+                : "border-neutral-700 hover:border-purple-500/50"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-3 h-3 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                  value === tone
+                    ? "border-purple-500 bg-purple-500"
+                    : "border-neutral-600"
+                }`}
+              >
+                {value === tone && (
+                  <div className="w-1.5 h-1.5 bg-neutral-900 rounded-full" />
+                )}
+              </div>
+              <div>
+                <div className="font-medium text-sm">{toneLabels[tone]}</div>
+                <div className="text-xs text-neutral-500 hidden sm:block">
+                  {TONE_STYLE_DESCRIPTIONS[tone]}
+                </div>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export default function Home() {
   const [formData, setFormData] = useState<FormData>({
     projectName: "",
@@ -79,6 +202,8 @@ export default function Home() {
     includeSidebar: true,
     useDesignV2: false,
     generateFullDocs: true, // true = full documentation package, false = simple README
+    audience: "developer", // Default audience
+    toneStyle: "professional", // Default tone style
   });
 
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>({
@@ -135,6 +260,8 @@ export default function Home() {
           accentColor: formData.accentColor,
           includeSidebar: formData.includeSidebar,
           generateFullDocs: formData.generateFullDocs,
+          audience: formData.audience,
+          toneStyle: formData.toneStyle,
         }),
       });
 
@@ -216,6 +343,9 @@ export default function Home() {
           accentColor: "#D4AF37",
           includeSidebar: true,
           useDesignV2: false,
+          generateFullDocs: true,
+          audience: "developer",
+          toneStyle: "professional",
         });
       }, 2000);
     } catch (error) {
@@ -341,9 +471,100 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <div className="relative z-10 container-xl content-offset py-12">
+      <div className="relative z-10 w-full max-w-full px-4 sm:px-6 lg:px-8 py-12 mt-24">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Form Section */}
+          {/* Options Section (Left) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-4 options-panel"
+          >
+            {/* Target Audience */}
+            <motion.div className="card p-6 space-y-4">
+              <AudienceSelector
+                value={formData.audience}
+                onChange={(value) => handleInputChange("audience", value)}
+              />
+            </motion.div>
+
+            {/* Writing Style */}
+            <motion.div className="card p-6 space-y-4">
+              <ToneStyleSelector
+                value={formData.toneStyle}
+                onChange={(value) => handleInputChange("toneStyle", value)}
+              />
+            </motion.div>
+
+            {/* Full Doc Package Toggle */}
+            <motion.div className="card p-6 space-y-4">
+              <Toggle
+                label="Generate Full Documentation Package"
+                value={formData.generateFullDocs}
+                onChange={(value) =>
+                  handleInputChange("generateFullDocs", value)
+                }
+              />
+            </motion.div>
+
+            {/* Accent Color (Show only when Full Docs enabled) */}
+            {formData.generateFullDocs && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="card p-6 space-y-4"
+              >
+                <div className="space-y-2">
+                  <label className="block label">Accent Color</label>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="color"
+                      value={formData.accentColor}
+                      onChange={(e) =>
+                        handleInputChange("accentColor", e.target.value)
+                      }
+                      className="color-swatch cursor-pointer"
+                    />
+                    <code className="input-chip">{formData.accentColor}</code>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Sidebar Toggle (Show only when Full Docs enabled) */}
+            {formData.generateFullDocs && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="card p-6 space-y-4"
+              >
+                <Toggle
+                  label="Include Sidebar Navigation"
+                  value={formData.includeSidebar}
+                  onChange={(value) =>
+                    handleInputChange("includeSidebar", value)
+                  }
+                />
+              </motion.div>
+            )}
+
+            {/* Footer Info */}
+            <div className="text-xs text-muted text-center space-y-1 pt-4">
+              <p>
+                © 2026{" "}
+                <a
+                  href="https://jumpstone4477.de/devreadme"
+                  className="hover:text-accent transition-colors"
+                >
+                  DevRead.me
+                </a>{" "}
+                is licensed under GNU GPLv3.
+              </p>
+              <p>Made by developers for developers.</p>
+            </div>
+          </motion.div>
+
+          {/* Input Section (Right - 2 columns) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -405,53 +626,6 @@ export default function Home() {
                 rows={6}
               />
 
-              {/* Toggles */}
-              <div className="space-y-3">
-                <Toggle
-                  label="Generate Full Documentation Package"
-                  value={formData.generateFullDocs}
-                  onChange={(value) =>
-                    handleInputChange("generateFullDocs", value)
-                  }
-                />
-                {formData.generateFullDocs && (
-                  <>
-                    {/* Color Picker */}
-                    <div className="space-y-2">
-                      <label className="block label">Accent Color</label>
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="color"
-                          value={formData.accentColor}
-                          onChange={(e) =>
-                            handleInputChange("accentColor", e.target.value)
-                          }
-                          className="color-swatch cursor-pointer"
-                        />
-                        <code className="input-chip">
-                          {formData.accentColor}
-                        </code>
-                      </div>
-                    </div>
-
-                    <Toggle
-                      label="Include Sidebar Navigation"
-                      value={formData.includeSidebar}
-                      onChange={(value) =>
-                        handleInputChange("includeSidebar", value)
-                      }
-                    />
-                    {/* <Toggle
-                      label="Modern Design (V2)"
-                      value={formData.useDesignV2}
-                      onChange={(value) =>
-                        handleInputChange("useDesignV2", value)
-                      }
-                    /> */}
-                  </>
-                )}
-              </div>
-
               {/* Error Message */}
               {generationStatus.error && (
                 <motion.div
@@ -505,93 +679,8 @@ export default function Home() {
               </motion.button>
             </motion.div>
           </motion.div>
-
-          {/* Info Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-6"
-          >
-            {/* Features Card */}
-            <motion.div className="card p-6 space-y-4">
-              <h3 className="text-lg font-bold flex items-center space-x-2">
-                <Sparkles className="w-5 h-5 text-accent" />
-                <span>Features</span>
-              </h3>
-              <ul className="space-y-3 text-sm text-muted">
-                {[
-                  "AI-Powered Analysis",
-                  "Docsify Integration",
-                  "Custom Themes",
-                  "Auto Sidebars",
-                  "One-Click Export",
-                  "Markdown Support",
-                ].map((feature) => (
-                  <li key={feature} className="flex items-center space-x-2">
-                    <span className="accent-dot" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-
-            {/* Tech Stack Card */}
-            <motion.div className="card p-6 space-y-4">
-              <h3 className="text-lg font-bold flex items-center space-x-2">
-                <Github className="w-5 h-5 text-accent" />
-                <span>Tech Stack</span>
-              </h3>
-              <div className="space-y-2 text-sm text-muted">
-                <p>
-                  <span className="text-accent font-semibold">Frontend:</span>{" "}
-                  Next.js, TypeScript, Tailwind
-                </p>
-                <p>
-                  <span className="text-accent font-semibold">AI:</span> Groq
-                  Llama 3.3 70B
-                </p>
-                <p>
-                  <span className="text-accent font-semibold">Export:</span>{" "}
-                  JSZip, Docsify
-                </p>
-              </div>
-            </motion.div>
-
-            {/* Stats */}
-            <motion.div className="grid grid-cols-2 gap-4">
-              {[
-                { label: "Generated Docs", value: "1000+" },
-                { label: "Happy Users", value: "500+" },
-                { label: "Avg Time", value: "30s" },
-                { label: "Success Rate", value: "99.9%" },
-              ].map((stat) => (
-                <div key={stat.label} className="stat-card">
-                  <p className="text-2xl font-bold text-accent">{stat.value}</p>
-                  <p className="text-xs text-muted mt-1">{stat.label}</p>
-                </div>
-              ))}
-            </motion.div>
-          </motion.div>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="relative z-10 app-footer mt-20">
-        <div className="container-xl py-8 text-center text-muted text-sm">
-          <p>
-            Powered by{" "}
-            <span className="text-accent font-semibold">Groq Cloud</span> &
-            built with{" "}
-            <span className="text-accent font-semibold">Next.js</span>
-          </p>
-          <p className="mt-2">
-            © 2026 <a href="https://jumpstone4477.de/devreadme">DevRead.me </a>
-            is licensed under GNU GPLv3.
-          </p>
-          <p>Made by developers for developers.</p>
-        </div>
-      </footer>
     </div>
   );
 }

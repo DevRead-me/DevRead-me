@@ -7,6 +7,8 @@ import {
   GenerateApiResponse,
   ExportBundle,
   DocumentationFile,
+  AudienceType,
+  ToneStyle,
 } from "@/types";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -43,14 +45,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Step 1: Generate documentation using Groq
     console.log("[API] Step 1: Generating documentation with Groq...");
+    console.log(`[API] Audience: ${body.audience}`);
+    console.log(`[API] Tone Style: ${body.toneStyle}`);
     const generationResult = body.generateFullDocs
-      ? await generateCompleteDocumentation(body.projectName, body.codeInput)
+      ? await generateCompleteDocumentation(
+          body.projectName,
+          body.codeInput,
+          undefined,
+          body.audience || "developer",
+          body.toneStyle || "professional",
+        )
       : await (
           await import("@/lib/groq-service")
         ).generateSimpleReadme(
           body.projectName,
           body.description || "",
           body.codeInput,
+          body.audience || "developer",
+          body.toneStyle || "professional",
         );
 
     // Step 2: Convert Groq results to DocumentationFile array
@@ -133,6 +145,14 @@ function validateInput(body: any): {
   errors: string[];
 } {
   const errors: string[] = [];
+  const validAudiences: AudienceType[] = ["developer", "team", "enduser"];
+  const validTones: ToneStyle[] = [
+    "casual",
+    "professional",
+    "friendly",
+    "technical",
+    "academic",
+  ];
 
   if (!body.projectName || body.projectName.trim().length === 0) {
     errors.push("Project name is required");
@@ -148,6 +168,14 @@ function validateInput(body: any): {
 
   if (typeof body.includeSidebar !== "boolean") {
     errors.push("includeSidebar must be a boolean");
+  }
+
+  if (body.audience && !validAudiences.includes(body.audience)) {
+    errors.push(`Audience must be one of: ${validAudiences.join(", ")}`);
+
+    if (body.toneStyle && !validTones.includes(body.toneStyle)) {
+      errors.push(`Tone style must be one of: ${validTones.join(", ")}`);
+    }
   }
 
   return {

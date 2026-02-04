@@ -1,7 +1,103 @@
 import { Groq } from "groq-sdk";
-import { GroqGenerationResult } from "@/types";
+import { GroqGenerationResult, AudienceType, ToneStyle } from "@/types";
 
 const MODEL = "llama-3.3-70b-versatile";
+
+/**
+ * Get tone style specific instructions for documentation generation
+ */
+function getToneContext(toneStyle: ToneStyle): string {
+  const tones: Record<ToneStyle, string> = {
+    casual: `
+TONE: Casual and relaxed
+- Use conversational language as if speaking to a friend
+- Use contractions (it's, that's, we're)
+- Avoid overly formal phrases
+- Include informal expressions and light humor where appropriate
+- Use "we" and "you" frequently
+- Keep sentences short and punchy
+- Make it feel approachable and fun`,
+    professional: `
+TONE: Professional and formal
+- Use formal language and complete sentences
+- Avoid contractions and slang
+- Use precise terminology
+- Maintain a business-like tone throughout
+- Use passive voice where appropriate
+- Avoid humor or casual expressions
+- Sound authoritative and well-researched`,
+    friendly: `
+TONE: Warm and friendly
+- Use warm, welcoming language
+- Be encouraging and supportive
+- Use "we" and "your" to create connection
+- Include helpful tips and positive feedback
+- Use simple, everyday language
+- Be empathetic to user challenges
+- Make it feel like talking to a helpful friend`,
+    technical: `
+TONE: Technical and precise
+- Use exact technical terminology
+- Be highly specific and detailed
+- Avoid simplifications or metaphors
+- Use passive voice for objectivity
+- Include technical specifications
+- Focus on accuracy over accessibility
+- Sound authoritative and expert-level`,
+    academic: `
+TONE: Scholarly and structured
+- Use formal academic language
+- Include proper citations and references
+- Use structured reasoning and argumentation
+- Avoid colloquialisms
+- Use third-person perspective
+- Include detailed explanations and context
+- Sound scholarly and well-researched`,
+  };
+
+  return tones[toneStyle];
+}
+
+/**
+ * Get audience-specific context for documentation generation
+ */
+function getAudienceContext(audience: AudienceType): string {
+  const contexts: Record<AudienceType, string> = {
+    developer: `
+You are writing documentation for DEVELOPERS who have technical expertise.
+- Include technical implementation details and architecture
+- Reference code files and functions specifically
+- Include API signatures and type definitions
+- Assume knowledge of programming concepts
+- Include contribution guidelines and code style
+- Cover advanced features and configurations
+- Add debugging and troubleshooting for developers
+- Style: Similar to CONTRIBUTING.md files`,
+    team: `
+You are writing documentation for TEAM MEMBERS with varying technical levels.
+- Balance technical and user-friendly content
+- Include both "what" and "how" explanations
+- Provide workflow and process documentation
+- Include best practices and tips
+- Add common issues and solutions
+- Use clear examples and screenshots descriptions
+- Assume some technical knowledge but explain jargon
+- Style: Professional and collaborative`,
+    enduser: `
+You are writing documentation for END USERS with little/no technical background.
+- Use simple, everyday language
+- Avoid technical jargon or explain it clearly
+- Include step-by-step instructions with screenshots descriptions
+- Focus on common tasks and workflows
+- Add visual hierarchy with lots of headings
+- Use analogies and simple explanations
+- Include FAQ section for common questions
+- Emphasize what the user can DO, not technical implementation
+- Style: Friendly, helpful, and accessible`,
+  };
+
+  return contexts[audience];
+}
 
 /**
  * Initialize Groq client with API key
@@ -27,10 +123,16 @@ export async function analyzeCode(
   projectName: string,
   codeInput: string,
   readmeContent?: string,
+  audience: AudienceType = "developer",
+  toneStyle: ToneStyle = "professional",
 ): Promise<string> {
   const groq = getGroqClient();
 
-  const analysisPrompt = `You are an expert technical documentation writer. Analyze the following project information and code snippets, then create a comprehensive documentation structure.
+  const analysisPrompt = `You are an expert technical documentation writer. ${getAudienceContext(audience)}
+
+${getToneContext(toneStyle)}
+
+Analyze the following project information and code snippets, then create a comprehensive documentation structure.
 
 Project Name: ${projectName}
 ${readmeContent ? `Existing README:\n${readmeContent}\n\n` : ""}
@@ -72,10 +174,22 @@ export async function generateDocumentation(
   projectName: string,
   codeInput: string,
   analysis: string,
+  audience: AudienceType = "developer",
+  toneStyle: ToneStyle = "professional",
 ): Promise<GroqGenerationResult> {
   const groq = getGroqClient();
 
-  const generationPrompt = `You are an expert technical documentation writer. Based on the project analysis below, generate comprehensive markdown documentation files.
+  const fileGuidance: Record<AudienceType, string> = {
+    developer: `Create files like: README.md, CONTRIBUTING.md, ARCHITECTURE.md, API.md, SETUP.md (advanced), TROUBLESHOOTING.md (for devs)`,
+    team: `Create files like: README.md, GETTING_STARTED.md, USER_GUIDE.md, FAQ.md, WORKFLOW.md, TROUBLESHOOTING.md`,
+    enduser: `Create files like: README.md (simple), QUICK_START.md, HOW_TO.md, FAQ.md, TROUBLESHOOTING.md (simple)`,
+  };
+
+  const generationPrompt = `You are an expert technical documentation writer. ${getAudienceContext(audience)}
+
+${getToneContext(toneStyle)}
+
+Based on the project analysis below, generate comprehensive markdown documentation files.
 
 Project Name: ${projectName}
 
@@ -87,7 +201,8 @@ Code Context:
 ${codeInput}
 \`\`\`
 
-Generate documentation in the following JSON format. Create at least these files: README.md, SETUP.md, API.md, FEATURES.md, and TROUBLESHOOTING.md
+${fileGuidance[audience]}
+
 Return ONLY valid JSON in this format:
 {
   "files": {
@@ -105,14 +220,32 @@ Return ONLY valid JSON in this format:
 }
 
 Guidelines for Markdown Generation:
-- Use clear hierarchies with H1, H2, H3 headings
-- Include code examples where relevant
-- Provide installation instructions
-- Document API endpoints or functions
-- Add troubleshooting sections
-- Include links between related documents
-- Make content beginner-friendly but technically accurate
-- Use proper markdown formatting (code blocks, lists, tables)`;
+${
+  audience === "developer"
+    ? `- Use clear hierarchies with H1, H2, H3 headings
+- Include detailed code examples and technical specifications
+- Provide implementation details and architecture diagrams (in text)
+- Document API endpoints or functions with signatures
+- Include contributing guidelines and code style requirements
+- Add debugging and troubleshooting for developers`
+    : audience === "team"
+      ? `- Use clear hierarchies with H1, H2, H3 headings
+- Include both technical and workflow documentation
+- Provide examples relevant to team processes
+- Document team workflows and best practices
+- Add tips and common issues
+- Balance detail with accessibility`
+      : `- Use simple, clear language
+- Break down complex topics into steps
+- Provide lots of examples with descriptions
+- Focus on "how to do" tasks
+- Include a comprehensive FAQ
+- Add helpful tips and common pitfalls
+- Use short paragraphs and lists
+- Make content visually scannable`
+}
+- Use proper markdown formatting (code blocks, lists, tables)
+- Make content easily scannable`;
 
   const message = await groq.chat.completions.create({
     model: MODEL,
@@ -152,10 +285,22 @@ export async function generateSimpleReadme(
   projectName: string,
   description: string,
   codeInput: string,
+  audience: AudienceType = "developer",
+  toneStyle: ToneStyle = "professional",
 ): Promise<GroqGenerationResult> {
   const groq = getGroqClient();
 
-  const simplePrompt = `You are an expert technical documentation writer. Generate a comprehensive, well-structured README.md file for the following project.
+  const readmeGuidance: Record<AudienceType, string> = {
+    developer: `Include: API documentation, architecture overview, setup for development, contribution guidelines, advanced configuration, debugging tips.`,
+    team: `Include: Project overview, setup instructions, common workflows, team guidelines, tips and best practices, FAQ.`,
+    enduser: `Include: What the product does, simple setup, step-by-step guides, common tasks, helpful tips, simple FAQ.`,
+  };
+
+  const simplePrompt = `You are an expert technical documentation writer. ${getAudienceContext(audience)}
+
+${getToneContext(toneStyle)}
+
+Generate a comprehensive, well-structured README.md file for the following project.
 
 Project Name: ${projectName}
 Description: ${description || "No description provided"}
@@ -165,16 +310,9 @@ Code/Project Information:
 ${codeInput}
 \`\`\`
 
-Create a SINGLE, comprehensive README.md that includes:
-- Project title and description
-- Key features
-- Installation/setup instructions
-- Usage examples with code snippets
-- Configuration options
-- API documentation (if applicable)
-- Troubleshooting tips
-- Contributing guidelines (if relevant)
-- License information
+${readmeGuidance[audience]}
+
+Create a SINGLE, comprehensive README.md that includes all relevant sections for the target audience.
 
 Return ONLY valid JSON in this exact format:
 {
@@ -188,7 +326,7 @@ Return ONLY valid JSON in this exact format:
   }
 }
 
-Make the README comprehensive, professional, and include all necessary information in one file.`;
+Make the README comprehensive, professional, and include all necessary information in one file, tailored for the specified audience.`;
 
   const message = await groq.chat.completions.create({
     model: MODEL,
@@ -228,11 +366,19 @@ export async function generateCompleteDocumentation(
   projectName: string,
   codeInput: string,
   readmeContent?: string,
+  audience: AudienceType = "developer",
+  toneStyle: ToneStyle = "professional",
 ): Promise<GroqGenerationResult> {
   try {
     // Step 1: Analyze
     console.log("[Groq] Analyzing code and creating structure...");
-    const analysis = await analyzeCode(projectName, codeInput, readmeContent);
+    const analysis = await analyzeCode(
+      projectName,
+      codeInput,
+      readmeContent,
+      audience,
+      toneStyle,
+    );
     console.log("[Groq] Analysis complete");
 
     // Step 2: Generate
@@ -241,6 +387,8 @@ export async function generateCompleteDocumentation(
       projectName,
       codeInput,
       analysis,
+      audience,
+      toneStyle,
     );
     console.log("[Groq] Documentation generation complete");
 

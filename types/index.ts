@@ -1,3 +1,36 @@
+// Audience Types
+export type AudienceType = "developer" | "team" | "enduser";
+
+export const AUDIENCE_LABELS: Record<AudienceType, string> = {
+  developer: "Developer (Technical)",
+  team: "Team Member",
+  enduser: "End User (Simple)",
+};
+
+// Tone Style Types
+export type ToneStyle =
+  | "casual"
+  | "professional"
+  | "friendly"
+  | "technical"
+  | "academic";
+
+export const TONE_STYLE_LABELS: Record<ToneStyle, string> = {
+  casual: "Locker (Casual)",
+  professional: "Professionell",
+  friendly: "Freundlich (Friendly)",
+  technical: "Technisch (Technical)",
+  academic: "Akademisch (Academic)",
+};
+
+export const TONE_STYLE_DESCRIPTIONS: Record<ToneStyle, string> = {
+  casual: "Relaxed, informal tone with conversational language",
+  professional: "Formal, business-focused language",
+  friendly: "Warm, approachable tone that's easy to understand",
+  technical: "Precise, detailed language for technical accuracy",
+  academic: "Scholarly, structured tone with formal vocabulary",
+};
+
 // Documentation Package Types
 export interface DocumentationFile {
   name: string;
@@ -87,6 +120,9 @@ export interface FormData {
   accentColor: string;
   includeSidebar: boolean;
   useDesignV2: boolean;
+  audience: AudienceType;
+  toneStyle: ToneStyle;
+  generateFullDocs: boolean;
 }
 
 export interface GenerationStatus {
@@ -104,6 +140,8 @@ export interface GenerateApiRequest {
   accentColor: string;
   includeSidebar: boolean;
   generateFullDocs: boolean; // true = full docs package, false = simple README only
+  toneStyle: ToneStyle; // casual | professional | friendly | technical | academic
+  audience: AudienceType; // developer | team | enduser
 }
 
 export interface GenerateApiResponse {
